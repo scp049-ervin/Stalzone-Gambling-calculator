@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STALZONE Case Calculator & Unboxing Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Share Tech Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        zone: {
+                            bg: '#0a0c10',
+                            panel: '#12161f',
+                            card: '#181e2b',
+                            border: '#263042',
+                            purple: '#a335ee',
+                            pink: '#ff40ac',
+                            red: '#ff2a2a',
+                            gold: '#ff9900',
+                            common: '#88909d'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"Share Tech Mono"', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0c10;
+            color: #e5e7eb;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(255, 153, 0, 0.04) 0%, transparent 60%),
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 100% 100%, 24px 24px, 24px 24px;
+        }
+
+        /* Tactical Borders & Glows */
+        .border-purple-glow { border-color: rgba(163, 53, 238, 0.6); box-shadow: 0 0 12px rgba(163, 53, 238, 0.25); }
+        .border-pink-glow { border-color: rgba(255, 64, 172, 0.6); box-shadow: 0 0 12px rgba(255, 64, 172, 0.25); }
+        .border-red-glow { border-color: rgba(255, 42, 42, 0.6); box-shadow: 0 0 14px rgba(255, 42, 42, 0.3); }
+        .border-gold-glow { border-color: rgba(255, 153, 0, 0.7); box-shadow: 0 0 16px rgba(255, 153, 0, 0.35); }
+
+        .text-shadow-gold { text-shadow: 0 0 8px rgba(255, 153, 0, 0.6); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #12161f; }
+        ::-webkit-scrollbar-thumb { background: #263042; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff9900; }
+
+        .item-pop {
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.25) forwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-black">
+
+    <!-- Header -->
+    <header class="border-b border-zone-border bg-zone-panel/90 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-500 font-mono text-xl font-bold">
+                    <i class="fa-solid fa-radiation text-amber-400"></i>
+                </div>
+                <div>
+                    <h1 class="font-mono text-lg font-bold tracking-wider text-white flex items-center gap-2">
+                        STALZONE <span class="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">CLAN TACTICAL SYSTEM</span>
+                    </h1>
+                    <p class="text-xs text-gray-400 font-mono">Dynamic Pity Odds & Monte Carlo Unbox Engine</p>
+                </div>
+            </div>
+
+            <!-- Tab Controls -->
+            <nav class="flex space-x-2">
+                <button onclick="switchTab('simulator')" id="tab-sim-btn" class="px-3.5 py-1.5 rounded text-sm font-mono transition flex items-center gap-2 bg-amber-500 text-black font-semibold shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-box-open"></i> Simulator
+                </button>
+                <button onclick="switchTab('calculator')" id="tab-calc-btn" class="px-3.5 py-1.5 rounded text-sm font-mono transition flex items-center gap-2 bg-zone-card text-gray-300 hover:text-white border border-zone-border">
+                    <i class="fa-solid fa-calculator"></i> Odds Calc
+                </button>
+                <button onclick="switchTab('reference')" id="tab-ref-btn" class="px-3.5 py-1.5 rounded text-sm font-mono transition flex items-center gap-2 bg-zone-card text-gray-300 hover:text-white border border-zone-border">
+                    <i class="fa-solid fa-table-cells"></i> Pity Tables
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ==================== TAB 1: SIMULATOR ==================== -->
+        <div id="tab-simulator" class="space-y-6">
+            
+            <!-- Dynamic Pity HUD -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <!-- Rare (Purple) Counter -->
+                <div class="bg-zone-card border border-zone-border rounded-lg p-4 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-zone-purple"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-mono text-purple-400 font-bold uppercase tracking-wider">Rare (Purple)</span>
+                        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-800/40" id="hud-purple-odds">1:33</span>
+                    </div>
+                    <div class="flex items-baseline justify-between">
+                        <div class="text-2xl font-mono font-bold text-white" id="hud-purple-count">1 <span class="text-xs text-gray-500">/ 21+</span></div>
+                        <span class="text-xs text-gray-400 font-mono" id="hud-purple-pct">3.03%</span>
+                    </div>
+                    <div class="w-full bg-zone-panel h-1.5 rounded-full mt-3 overflow-hidden">
+                        <div id="hud-purple-bar" class="bg-zone-purple h-full transition-all duration-300" style="width: 4.76%"></div>
+                    </div>
+                </div>
+
+                <!-- Very Rare (Pink) Counter -->
+                <div class="bg-zone-card border border-zone-border rounded-lg p-4 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-zone-pink"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-mono text-pink-400 font-bold uppercase tracking-wider">Very Rare (Pink)</span>
+                        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-pink-950/60 text-pink-300 border border-pink-800/40" id="hud-pink-odds">1:50</span>
+                    </div>
+                    <div class="flex items-baseline justify-between">
+                        <div class="text-2xl font-mono font-bold text-white" id="hud-pink-count">1 <span class="text-xs text-gray-500">/ 21+</span></div>
+                        <span class="text-xs text-gray-400 font-mono" id="hud-pink-pct">2.00%</span>
+                    </div>
+                    <div class="w-full bg-zone-panel h-1.5 rounded-full mt-3 overflow-hidden">
+                        <div id="hud-pink-bar" class="bg-zone-pink h-full transition-all duration-300" style="width: 4.76%"></div>
+                    </div>
+                </div>
+
+                <!-- Extremely Rare (Red) Counter -->
+                <div class="bg-zone-card border border-zone-border rounded-lg p-4 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-zone-red"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-mono text-red-400 font-bold uppercase tracking-wider">Extremely Rare (Red)</span>
+                        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-red-950/60 text-red-300 border border-red-800/40" id="hud-red-odds">1:100</span>
+                    </div>
+                    <div class="flex items-baseline justify-between">
+                        <div class="text-2xl font-mono font-bold text-white" id="hud-red-count">1 <span class="text-xs text-gray-500">/ 21+</span></div>
+                        <span class="text-xs text-gray-400 font-mono" id="hud-red-pct">1.00%</span>
+                    </div>
+                    <div class="w-full bg-zone-panel h-1.5 rounded-full mt-3 overflow-hidden">
+                        <div id="hud-red-bar" class="bg-zone-red h-full transition-all duration-300" style="width: 4.76%"></div>
+                    </div>
+                </div>
+
+                <!-- Unique (Gold) Counter -->
+                <div class="bg-zone-card border border-zone-border rounded-lg p-4 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-zone-gold"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider">Unique (Gold)</span>
+                        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/40" id="hud-gold-odds">1:1000</span>
+                    </div>
+                    <div class="flex items-baseline justify-between">
+                        <div class="text-2xl font-mono font-bold text-white" id="hud-gold-count">1 <span class="text-xs text-gray-500">/ 21+</span></div>
+                        <span class="text-xs text-gray-400 font-mono" id="hud-gold-pct">0.10%</span>
+                    </div>
+                    <div class="w-full bg-zone-panel h-1.5 rounded-full mt-3 overflow-hidden">
+                        <div id="hud-gold-bar" class="bg-zone-gold h-full transition-all duration-300" style="width: 4.76%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls & Controls Panel -->
+            <div class="bg-zone-panel border border-zone-border rounded-lg p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+                <div>
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-cube text-amber-400"></i> Open Cases
+                    </h2>
+                    <p class="text-xs text-gray-400 font-mono">Simulates opening cases using active independent pity counters.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="openCases(1)" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-mono font-bold text-sm rounded shadow transition flex items-center gap-2 active:scale-95">
+                        <i class="fa-solid fa-box"></i> Open 1
+                    </button>
+                    <button onclick="openCases(10)" class="px-4 py-2 bg-zone-card hover:bg-zone-border text-white border border-zone-border font-mono font-semibold text-sm rounded transition active:scale-95">
+                        Open 10
+                    </button>
+                    <button onclick="openCases(50)" class="px-4 py-2 bg-zone-card hover:bg-zone-border text-white border border-zone-border font-mono font-semibold text-sm rounded transition active:scale-95">
+                        Open 50
+                    </button>
+                    <button onclick="openCases(100)" class="px-4 py-2 bg-zone-card hover:bg-zone-border text-white border border-zone-border font-mono font-semibold text-sm rounded transition active:scale-95">
+                        Open 100
+                    </button>
+                    <button onclick="openCases(500)" class="px-4 py-2 bg-zone-card hover:bg-zone-border text-white border border-zone-border font-mono font-semibold text-sm rounded transition active:scale-95">
+                        Open 500
+                    </button>
+                    <div class="h-6 w-px bg-zone-border mx-1"></div>
+                    <button onclick="resetSimulator()" class="px-3 py-2 bg-red-950/40 hover:bg-red-900/50 text-red-400 border border-red-800/40 font-mono text-sm rounded transition">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Interactive Display: Latest Drop & Inventory Summary -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Drop Showcase Panel -->
+                <div class="lg:col-span-2 bg-zone-panel border border-zone-border rounded-lg p-5 flex flex-col justify-between min-h-[380px]">
+                    <div class="flex items-center justify-between border-b border-zone-border pb-3">
+                        <span class="text-sm font-mono text-gray-300 font-semibold"><i class="fa-solid fa-sparkles text-amber-400 mr-1"></i> Latest Loot Unboxed</span>
+                        <span class="text-xs font-mono text-gray-400" id="sim-total-cases">Total Opened: 0</span>
+                    </div>
+
+                    <!-- Single / Bulk Display Canvas -->
+                    <div id="drop-display-container" class="my-6 flex flex-wrap gap-3 items-center justify-center min-h-[200px]">
+                        <div class="text-center text-gray-500 font-mono py-12">
+                            <i class="fa-solid fa-box-open text-4xl mb-3 text-gray-600 block"></i>
+                            Press any button above to begin unboxing cases.
+                        </div>
+                    </div>
+
+                    <div class="border-t border-zone-border pt-3 flex justify-between items-center text-xs font-mono text-gray-400">
+                        <span>Pity auto-resets only for the specific unboxed rarity.</span>
+                        <span id="latest-roll-info">--</span>
+                    </div>
+                </div>
+
+                <!-- Stats & Session Inventory -->
+                <div class="bg-zone-panel border border-zone-border rounded-lg p-5 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm font-mono text-gray-200 font-semibold border-b border-zone-border pb-3 mb-4">
+                            <i class="fa-solid fa-warehouse text-amber-400 mr-1"></i> Loot Breakdown
+                        </h3>
+
+                        <div class="space-y-3 font-mono text-sm">
+                            <div class="flex justify-between items-center p-2 rounded bg-zone-card border border-amber-500/30">
+                                <span class="text-amber-400 font-bold flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-zone-gold inline-block"></span> Unique
+                                </span>
+                                <span class="text-white font-bold" id="stat-gold">0</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 rounded bg-zone-card border border-red-500/30">
+                                <span class="text-red-400 font-bold flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-zone-red inline-block"></span> Extremely Rare
+                                </span>
+                                <span class="text-white font-bold" id="stat-red">0</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 rounded bg-zone-card border border-pink-500/30">
+                                <span class="text-pink-400 font-bold flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-zone-pink inline-block"></span> Very Rare
+                                </span>
+                                <span class="text-white font-bold" id="stat-pink">0</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 rounded bg-zone-card border border-purple-500/30">
+                                <span class="text-purple-400 font-bold flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-zone-purple inline-block"></span> Rare
+                                </span>
+                                <span class="text-white font-bold" id="stat-purple">0</span>
+                            </div>
+                            <div class="flex justify-between items-center p-2 rounded bg-zone-card border border-gray-700">
+                                <span class="text-gray-400 flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-gray-500 inline-block"></span> Common Junk
+                                </span>
+                                <span class="text-white font-bold" id="stat-common">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session Win Rate Info -->
+                    <div class="mt-6 pt-4 border-t border-zone-border font-mono text-xs text-gray-400 space-y-1">
+                        <div class="flex justify-between">
+                            <span>Bonus Reward Rate:</span>
+                            <span class="text-white font-bold" id="stat-bonus-rate">0.00%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Avg Cases Per Red/Gold:</span>
+                            <span class="text-amber-400 font-bold" id="stat-avg-high">N/A</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="bg-zone-panel border border-zone-border rounded-lg p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-mono text-gray-300 uppercase tracking-wider font-semibold">
+                        <i class="fa-solid fa-list-ul text-amber-400 mr-1"></i> Clan Activity Drop Log
+                    </h3>
+                    <button onclick="clearLogs()" class="text-xs font-mono text-gray-500 hover:text-gray-300">Clear Log</button>
+                </div>
+                <div id="drop-log" class="font-mono text-xs space-y-1 max-h-48 overflow-y-auto pr-2 bg-zone-bg/80 p-3 rounded border border-zone-border">
+                    <div class="text-gray-600 italic">No drops logged yet.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: MONTE CARLO CALCULATOR ==================== -->
+        <div id="tab-calculator" class="hidden space-y-6">
+            <div class="bg-zone-panel border border-zone-border rounded-lg p-6">
+                <div class="max-w-3xl">
+                    <h2 class="text-xl font-mono font-bold text-white flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-calculator text-amber-400"></i> Dynamic Probability Calculator
+                    </h2>
+                    <p class="text-sm text-gray-400 leading-relaxed">
+                        Calculate exact win odds for opening <span class="text-amber-400 font-mono font-bold">N</span> cases taking into account starting pity counts. Runs a high-precision 10,000-sample Monte Carlo simulation respecting independent pity resets.
+                    </p>
+                </div>
+
+                <!-- Input Controls -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div class="space-y-2">
+                        <label class="block text-xs font-mono text-gray-300 uppercase">Target Rarity Drop</label>
+                        <select id="calc-target" class="w-full bg-zone-card border border-zone-border text-white text-sm rounded px-3 py-2 font-mono focus:border-amber-500 focus:outline-none">
+                            <option value="gold">Unique (Gold / 1:1000 -> 1:40)</option>
+                            <option value="red" selected>Extremely Rare (Red / 1:100 -> 1:13)</option>
+                            <option value="pink">Very Rare (Pink / 1:50 -> 1:10)</option>
+                            <option value="purple">Rare (Purple / 1:33 -> 1:7)</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-xs font-mono text-gray-300 uppercase">Cases to Open (N)</label>
+                        <input type="number" id="calc-cases" value="50" min="1" max="5000" class="w-full bg-zone-card border border-zone-border text-white text-sm rounded px-3 py-2 font-mono focus:border-amber-500 focus:outline-none">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-xs font-mono text-gray-300 uppercase">Target Current Pity Level</label>
+                        <input type="number" id="calc-start-pity" value="1" min="1" max="21" class="w-full bg-zone-card border border-zone-border text-white text-sm rounded px-3 py-2 font-mono focus:border-amber-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button onclick="runMonteCarloCalculation()" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-mono font-bold text-sm rounded shadow-lg shadow-amber-500/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-play"></i> Run Probability Simulation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Calculation Output Cards -->
+            <div id="calc-results" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-zone-panel border border-zone-border rounded-lg p-5">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Probability of >= 1 Drop</span>
+                    <div class="text-3xl font-mono font-bold text-amber-400 mt-2" id="res-prob">--%</div>
+                    <p class="text-xs text-gray-500 mt-2 font-mono">Simulated over 10,000 unboxing runs.</p>
+                </div>
+
+                <div class="bg-zone-panel border border-zone-border rounded-lg p-5">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Expected Avg Total Drops</span>
+                    <div class="text-3xl font-mono font-bold text-white mt-2" id="res-expected">--</div>
+                    <p class="text-xs text-gray-500 mt-2 font-mono">Mean count of target item obtained.</p>
+                </div>
+
+                <div class="bg-zone-panel border border-zone-border rounded-lg p-5">
+                    <span class="text-xs font-mono text-gray-400 uppercase">Recommended Cases for 50% Luck</span>
+                    <div class="text-3xl font-mono font-bold text-emerald-400 mt-2" id="res-median">--</div>
+                    <p class="text-xs text-gray-500 mt-2 font-mono">Cases required for a 50/50 chance.</p>
+                </div>
+            </div>
+
+            <!-- Detailed Odds Progression Chart -->
+            <div class="bg-zone-panel border border-zone-border rounded-lg p-5">
+                <h3 class="text-sm font-mono text-gray-200 font-semibold mb-4">
+                    <i class="fa-solid fa-chart-line text-amber-400 mr-1"></i> Pity Odds Scaling Visualization
+                </h3>
+                <div class="h-40 flex items-end gap-1.5 pt-6 pb-2 px-2 border-b border-zone-border overflow-x-auto" id="prob-chart">
+                    <!-- Dynamic Bars injected via JS -->
+                </div>
+                <div class="flex justify-between text-xs font-mono text-gray-500 mt-2">
+                    <span>Pull 1</span>
+                    <span>Pull 10</span>
+                    <span>Pull 21+ (Max Rate)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: REFERENCE TABLES ==================== -->
+        <div id="tab-reference" class="hidden space-y-6">
+            <div class="bg-zone-panel border border-zone-border rounded-lg p-6">
+                <h2 class="text-xl font-mono font-bold text-white mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-table-cells text-amber-400"></i> Official STALZONE Pity Odds Matrix
+                </h2>
+                <p class="text-sm text-gray-400">
+                    With each opening, the receiving chance gradually increases up to case 21+. Once a bonus item drops, the respective rarity group pity resets to 1.
+                </p>
+
+                <!-- Tables Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                    <!-- Purple Table -->
+                    <div class="bg-zone-card border border-purple-500/40 rounded-lg overflow-hidden">
+                        <div class="bg-purple-950/60 p-3 border-b border-purple-500/40 flex justify-between items-center">
+                            <span class="font-mono text-sm font-bold text-purple-300">RARE (PURPLE)</span>
+                            <span class="text-xs font-mono text-purple-400">1:33 -> 1:7</span>
+                        </div>
+                        <div class="p-3 max-h-96 overflow-y-auto">
+                            <table class="w-full text-xs font-mono">
+                                <thead><tr class="text-gray-400 border-b border-zone-border text-left">
+                                    <th class="pb-1">CASE</th><th class="pb-1">CHANCE</th><th class="pb-1">PCT</th>
+                                </tr></thead>
+                                <tbody id="ref-table-purple" class="divide-y divide-zone-border/50"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Pink Table -->
+                    <div class="bg-zone-card border border-pink-500/40 rounded-lg overflow-hidden">
+                        <div class="bg-pink-950/60 p-3 border-b border-pink-500/40 flex justify-between items-center">
+                            <span class="font-mono text-sm font-bold text-pink-300">VERY RARE (PINK)</span>
+                            <span class="text-xs font-mono text-pink-400">1:50 -> 1:10</span>
+                        </div>
+                        <div class="p-3 max-h-96 overflow-y-auto">
+                            <table class="w-full text-xs font-mono">
+                                <thead><tr class="text-gray-400 border-b border-zone-border text-left">
+                                    <th class="pb-1">CASE</th><th class="pb-1">CHANCE</th><th class="pb-1">PCT</th>
+                                </tr></thead>
+                                <tbody id="ref-table-pink" class="divide-y divide-zone-border/50"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Red Table -->
+                    <div class="bg-zone-card border border-red-500/40 rounded-lg overflow-hidden">
+                        <div class="bg-red-950/60 p-3 border-b border-red-500/40 flex justify-between items-center">
+                            <span class="font-mono text-sm font-bold text-red-300">EXTREMELY RARE (RED)</span>
+                            <span class="text-xs font-mono text-red-400">1:100 -> 1:13</span>
+                        </div>
+                        <div class="p-3 max-h-96 overflow-y-auto">
+                            <table class="w-full text-xs font-mono">
+                                <thead><tr class="text-gray-400 border-b border-zone-border text-left">
+                                    <th class="pb-1">CASE</th><th class="pb-1">CHANCE</th><th class="pb-1">PCT</th>
+                                </tr></thead>
+                                <tbody id="ref-table-red" class="divide-y divide-zone-border/50"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Gold Table -->
+                    <div class="bg-zone-card border border-amber-500/40 rounded-lg overflow-hidden">
+                        <div class="bg-amber-950/60 p-3 border-b border-amber-500/40 flex justify-between items-center">
+                            <span class="font-mono text-sm font-bold text-amber-300">UNIQUE (GOLD)</span>
+                            <span class="text-xs font-mono text-amber-400">1:1000 -> 1:40</span>
+                        </div>
+                        <div class="p-3 max-h-96 overflow-y-auto">
+                            <table class="w-full text-xs font-mono">
+                                <thead><tr class="text-gray-400 border-b border-zone-border text-left">
+                                    <th class="pb-1">CASE</th><th class="pb-1">CHANCE</th><th class="pb-1">PCT</th>
+                                </tr></thead>
+                                <tbody id="ref-table-gold" class="divide-y divide-zone-border/50"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-zone-border bg-zone-panel py-4 text-center text-xs font-mono text-gray-500">
+        STALZONE Clan Operations Tool &copy; 2026 | Powered by Exact Dynamic Pity Lookup Engine
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Exact 1:X Pity Lookup Tables from STALZONE Screenshots
+        const PITY_TABLES = {
+            purple: {
+                name: "Rare",
+                color: "#a335ee",
+                textColor: "text-purple-400",
+                borderColor: "border-purple-glow",
+                odds: [33, 31, 29, 28, 26, 25, 24, 23, 22, 21, 19, 17, 15, 14, 13, 12, 10, 9, 8, 7, 7]
+            },
+            pink: {
+                name: "Very Rare",
+                color: "#ff40ac",
+                textColor: "text-pink-400",
+                borderColor: "border-pink-glow",
+                odds: [50, 48, 45, 43, 42, 40, 38, 37, 36, 34, 33, 29, 25, 22, 20, 18, 17, 14, 12, 10, 10]
+            },
+            red: {
+                name: "Extremely Rare",
+                color: "#ff2a2a",
+                textColor: "text-red-400",
+                borderColor: "border-red-glow",
+                odds: [100, 93, 86, 81, 76, 71, 68, 64, 61, 58, 53, 49, 45, 42, 40, 37, 26, 20, 16, 13, 13]
+            },
+            gold: {
+                name: "Unique",
+                color: "#ff9900",
+                textColor: "text-amber-400",
+                borderColor: "border-gold-glow",
+                odds: [1000, 850, 700, 580, 480, 400, 340, 315, 280, 260, 230, 200, 175, 150, 110, 90, 77, 66, 50, 40, 40]
+            }
+        };
+
+        // Current Simulator State
+        let state = {
+            pity: { purple: 1, pink: 1, red: 1, gold: 1 },
+            stats: { purple: 0, pink: 0, red: 0, gold: 0, common: 0, total: 0 }
+        };
+
+        // Helper: Get denominator 1:X for given rarity and pity level (1 to 21+)
+        function getDenominator(rarityKey, pityCount) {
+            const table = PITY_TABLES[rarityKey].odds;
+            const idx = Math.min(Math.max(pityCount - 1, 0), table.length - 1);
+            return table[idx];
+        }
+
+        // Helper: Get exact probability (0.0 to 1.0)
+        function getProbability(rarityKey, pityCount) {
+            return 1.0 / getDenominator(rarityKey, pityCount);
+        }
+
+        // Initialize App
+        window.onload = function() {
+            updateHUD();
+            populateReferenceTables();
+            runMonteCarloCalculation();
+        };
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            ['simulator', 'calculator', 'reference'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            // Reset buttons styling
+            ['sim', 'calc', 'ref'].forEach(b => {
+                const btn = document.getElementById(`tab-${b}-btn`);
+                btn.className = "px-3.5 py-1.5 rounded text-sm font-mono transition flex items-center gap-2 bg-zone-card text-gray-300 hover:text-white border border-zone-border";
+            });
+
+            const activeBtn = document.getElementById(`tab-${tabId.substring(0,3)}-btn`);
+            activeBtn.className = "px-3.5 py-1.5 rounded text-sm font-mono transition flex items-center gap-2 bg-amber-500 text-black font-semibold shadow-lg shadow-amber-500/20";
+        }
+
+        // Update Dynamic HUD Counters
+        function updateHUD() {
+            ['purple', 'pink', 'red', 'gold'].forEach(key => {
+                const count = state.pity[key];
+                const denom = getDenominator(key, count);
+                const pct = (100 / denom).toFixed(2);
+
+                document.getElementById(`hud-${key}-count`).innerHTML = `${count} <span class="text-xs text-gray-500">/ 21+</span>`;
+                document.getElementById(`hud-${key}-odds`).innerText = `1:${denom}`;
+                document.getElementById(`hud-${key}-pct`).innerText = `${pct}%`;
+
+                // Bar fill % based on 21 max
+                const barWidth = Math.min((count / 21) * 100, 100);
+                document.getElementById(`hud-${key}-bar`).style.width = `${barWidth}%`;
+            });
+
+            // Stats
+            document.getElementById('stat-gold').innerText = state.stats.gold;
+            document.getElementById('stat-red').innerText = state.stats.red;
+            document.getElementById('stat-pink').innerText = state.stats.pink;
+            document.getElementById('stat-purple').innerText = state.stats.purple;
+            document.getElementById('stat-common').innerText = state.stats.common;
+            document.getElementById('sim-total-cases').innerText = `Total Opened: ${state.stats.total}`;
+
+            const bonusCount = state.stats.gold + state.stats.red + state.stats.pink + state.stats.purple;
+            const bonusRate = state.stats.total > 0 ? ((bonusCount / state.stats.total) * 100).toFixed(2) : "0.00";
+            document.getElementById('stat-bonus-rate').innerText = `${bonusRate}%`;
+
+            const highTier = state.stats.gold + state.stats.red;
+            const avgHigh = highTier > 0 ? (state.stats.total / highTier).toFixed(1) : "N/A";
+            document.getElementById('stat-avg-high').innerText = avgHigh;
+        }
+
+        // Open N Cases Logic
+        function openCases(count) {
+            const container = document.getElementById('drop-display-container');
+            container.innerHTML = '';
+            let lastHits = [];
+
+            for (let c = 0; c < count; c++) {
+                state.stats.total++;
+                let hitRarity = null;
+
+                // Priority Check: Highest tier to lowest tier check on independent roll
+                // Unique (Gold)
+                if (Math.random() < getProbability('gold', state.pity.gold)) {
+                    hitRarity = 'gold';
+                } 
+                // Extremely Rare (Red)
+                else if (Math.random() < getProbability('red', state.pity.red)) {
+                    hitRarity = 'red';
+                }
+                // Very Rare (Pink)
+                else if (Math.random() < getProbability('pink', state.pity.pink)) {
+                    hitRarity = 'pink';
+                }
+                // Rare (Purple)
+                else if (Math.random() < getProbability('purple', state.pity.purple)) {
+                    hitRarity = 'purple';
+                }
+
+                // Increment all pity counters by 1 initially for this opening
+                ['purple', 'pink', 'red', 'gold'].forEach(k => state.pity[k]++);
+
+                if (hitRarity) {
+                    // Reset ONLY the dropped rarity's pity back to 1
+                    const pityAtDrop = state.pity[hitRarity] - 1; // Pity count when it landed
+                    state.pity[hitRarity] = 1;
+                    state.stats[hitRarity]++;
+                    lastHits.push({ rarity: hitRarity, pityAtDrop });
+                    logDrop(hitRarity, pityAtDrop);
+                } else {
+                    state.stats.common++;
+                    lastHits.push({ rarity: 'common', pityAtDrop: 0 });
+                }
+            }
+
+            updateHUD();
+
+            // Render Display Cards (If count > 30, show condensed summary)
+            if (count === 1) {
+                renderSingleDropCard(container, lastHits[0]);
+            } else if (count <= 50) {
+                renderMultiDropGrid(container, lastHits);
+            } else {
+                renderBulkSummaryCard(container, count, lastHits);
+            }
+        }
+
+        // Single Drop Render
+        function renderSingleDropCard(container, drop) {
+            if (drop.rarity === 'common') {
+                container.innerHTML = `
+                    <div class="item-pop bg-zone-card border border-zone-border rounded-lg p-6 text-center max-w-xs w-full">
+                        <i class="fa-solid fa-box text-gray-500 text-4xl mb-3"></i>
+                        <h4 class="font-mono text-sm font-bold text-gray-300">Common Standard Pack</h4>
+                        <p class="text-xs text-gray-500 font-mono mt-1">Spare Parts / Resources</p>
+                    </div>
+                `;
+                document.getElementById('latest-roll-info').innerText = "No bonus rarity triggered. All pity counters +1.";
+            } else {
+                const info = PITY_TABLES[drop.rarity];
+                container.innerHTML = `
+                    <div class="item-pop bg-zone-card border ${info.borderColor} rounded-lg p-6 text-center max-w-sm w-full">
+                        <div class="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center border" style="background-color: ${info.color}20; border-color: ${info.color}">
+                            <i class="fa-solid fa-gem text-xl" style="color: ${info.color}"></i>
+                        </div>
+                        <span class="text-xs font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider" style="background-color: ${info.color}30; color: ${info.color}">
+                            ${info.name} DROP
+                        </span>
+                        <h4 class="font-mono text-lg font-bold text-white mt-2">Blueprint / Artifact Part</h4>
+                        <p class="text-xs font-mono text-gray-400 mt-1">Unboxed at Pity #${drop.pityAtDrop}</p>
+                    </div>
+                `;
+                document.getElementById('latest-roll-info').innerText = `🔥 RESET! ${info.name} pity reset to #1.`;
+            }
+        }
+
+        // Multi-drop Grid (10-50 cases)
+        function renderMultiDropGrid(container, hits) {
+            let html = `<div class="grid grid-cols-5 sm:grid-cols-10 gap-2 w-full max-h-[220px] overflow-y-auto p-1">`;
+            hits.forEach(h => {
+                if (h.rarity === 'common') {
+                    html += `<div class="h-10 rounded bg-zone-card border border-zone-border flex items-center justify-center text-gray-600 font-mono text-xs" title="Common">⚪</div>`;
+                } else {
+                    const info = PITY_TABLES[h.rarity];
+                    html += `<div class="h-10 rounded border ${info.borderColor} flex items-center justify-center font-mono text-xs font-bold item-pop" style="background-color: ${info.color}25; color: ${info.color}" title="${info.name} (Pity #${h.pityAtDrop})">
+                        💎
+                    </div>`;
+                }
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+            document.getElementById('latest-roll-info').innerText = `Opened ${hits.length} cases. Highlighting rare drops.`;
+        }
+
+        // Bulk Summary (100+ cases)
+        function renderBulkSummaryCard(container, count, hits) {
+            const counts = { purple: 0, pink: 0, red: 0, gold: 0, common: 0 };
+            hits.forEach(h => counts[h.rarity]++);
+
+            container.innerHTML = `
+                <div class="item-pop bg-zone-card border border-zone-border rounded-lg p-6 max-w-md w-full font-mono">
+                    <h4 class="text-amber-400 font-bold text-base mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-boxes-packing mr-1"></i> Bulk Unbox Summary</span>
+                        <span class="text-xs text-gray-400">${count} Cases</span>
+                    </h4>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="p-2 rounded bg-zone-panel border border-amber-500/30 text-amber-400">Unique: <strong>${counts.gold}</strong></div>
+                        <div class="p-2 rounded bg-zone-panel border border-red-500/30 text-red-400">Extremely Rare: <strong>${counts.red}</strong></div>
+                        <div class="p-2 rounded bg-zone-panel border border-pink-500/30 text-pink-400">Very Rare: <strong>${counts.pink}</strong></div>
+                        <div class="p-2 rounded bg-zone-panel border border-purple-500/30 text-purple-400">Rare: <strong>${counts.purple}</strong></div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('latest-roll-info').innerText = `Completed bulk operation of ${count} cases.`;
+        }
+
+        // Log Drops
+        function logDrop(rarityKey, pityAtDrop) {
+            const logContainer = document.getElementById('drop-log');
+            if (logContainer.children.length === 1 && logContainer.children[0].classList.contains('italic')) {
+                logContainer.innerHTML = '';
+            }
+            const info = PITY_TABLES[rarityKey];
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = "flex justify-between items-center py-1 border-b border-zone-border/40";
+            entry.innerHTML = `
+                <span style="color: ${info.color}" class="font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-angle-right"></i> ${info.name} Unboxed
+                </span>
+                <span class="text-gray-500">Pity Count: #${pityAtDrop} | ${time}</span>
+            `;
+            logContainer.prepend(entry);
+        }
+
+        function clearLogs() {
+            document.getElementById('drop-log').innerHTML = '<div class="text-gray-600 italic">No drops logged yet.</div>';
+        }
+
+        function resetSimulator() {
+            state = {
+                pity: { purple: 1, pink: 1, red: 1, gold: 1 },
+                stats: { purple: 0, pink: 0, red: 0, gold: 0, common: 0, total: 0 }
+            };
+            updateHUD();
+            document.getElementById('drop-display-container').innerHTML = `
+                <div class="text-center text-gray-500 font-mono py-12">
+                    <i class="fa-solid fa-box-open text-4xl mb-3 text-gray-600 block"></i>
+                    Press any button above to begin unboxing cases.
+                </div>
+            `;
+            document.getElementById('latest-roll-info').innerText = "--";
+            clearLogs();
+        }
+
+        // Monte Carlo Probability Engine
+        function runMonteCarloCalculation() {
+            const targetKey = document.getElementById('calc-target').value;
+            const casesToOpen = parseInt(document.getElementById('calc-cases').value) || 50;
+            const startPity = parseInt(document.getElementById('calc-start-pity').value) || 1;
+
+            const SAMPLES = 10000;
+            let totalDrops = 0;
+            let successRuns = 0;
+
+            for (let s = 0; s < SAMPLES; s++) {
+                let currentPity = startPity;
+                let dropsInRun = 0;
+
+                for (let c = 0; c < casesToOpen; c++) {
+                    const prob = getProbability(targetKey, currentPity);
+                    if (Math.random() < prob) {
+                        dropsInRun++;
+                        currentPity = 1; // Reset counter for targeted rarity
+                    } else {
+                        currentPity++;
+                    }
+                }
+
+                if (dropsInRun > 0) successRuns++;
+                totalDrops += dropsInRun;
+            }
+
+            const winPercent = ((successRuns / SAMPLES) * 100).toFixed(2);
+            const expectedAvg = (totalDrops / SAMPLES).toFixed(2);
+
+            // Compute Median cases needed for ~50% luck starting from startPity
+            let medianCases = 0;
+            let cumFailProb = 1.0;
+            let tempPity = startPity;
+
+            while (cumFailProb > 0.5 && medianCases < 2000) {
+                medianCases++;
+                const prob = getProbability(targetKey, tempPity);
+                cumFailProb *= (1.0 - prob);
+                tempPity++;
+            }
+
+            document.getElementById('res-prob').innerText = `${winPercent}%`;
+            document.getElementById('res-expected').innerText = expectedAvg;
+            document.getElementById('res-median').innerText = `~${medianCases} Cases`;
+
+            renderProbabilityChart(targetKey);
+        }
+
+        // Render Odds Scaling Chart
+        function renderProbabilityChart(rarityKey) {
+            const container = document.getElementById('prob-chart');
+            container.innerHTML = '';
+            const oddsArray = PITY_TABLES[rarityKey].odds;
+            const maxDenom = oddsArray[0]; // first is highest (lowest chance)
+
+            oddsArray.forEach((denom, i) => {
+                const pct = (100 / denom).toFixed(2);
+                const heightPct = Math.max((pct / (100 / oddsArray[oddsArray.length - 1])) * 100, 8);
+
+                const bar = document.createElement('div');
+                bar.className = "flex-1 rounded-t transition-all hover:opacity-80 relative group flex flex-col justify-end items-center";
+                bar.style.height = `${heightPct}%`;
+                bar.style.backgroundColor = PITY_TABLES[rarityKey].color;
+
+                bar.innerHTML = `
+                    <div class="opacity-0 group-hover:opacity-100 absolute -top-8 bg-black/90 text-white font-mono text-[10px] px-1.5 py-0.5 rounded border border-zone-border pointer-events-none z-10 whitespace-nowrap">
+                        Pull ${i + 1}${i === 20 ? '+' : ''}: 1:${denom} (${pct}%)
+                    </div>
+                `;
+                container.appendChild(bar);
+            });
+        }
+
+        // Render Tables in Tab 3
+        function populateReferenceTables() {
+            ['purple', 'pink', 'red', 'gold'].forEach(key => {
+                const tbody = document.getElementById(`ref-table-${key}`);
+                tbody.innerHTML = '';
+                const table = PITY_TABLES[key].odds;
+
+                table.forEach((denom, idx) => {
+                    const caseNum = idx === 20 ? '21+' : (idx + 1);
+                    const pct = (100 / denom).toFixed(2);
+                    const tr = document.createElement('tr');
+                    tr.className = idx === 20 ? "bg-amber-500/10 font-bold text-amber-300" : "hover:bg-zone-panel";
+                    tr.innerHTML = `
+                        <td class="py-1 text-gray-300">${caseNum}</td>
+                        <td class="py-1 font-semibold" style="color: ${PITY_TABLES[key].color}">1:${denom}</td>
+                        <td class="py-1 text-gray-400">${pct}%</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
